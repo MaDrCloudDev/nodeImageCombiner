@@ -1,8 +1,12 @@
-const fs = require('fs');
-const { createCanvas, loadImage } = require('canvas');
-const path = require('path');
+import fs from 'fs';
+import { createCanvas, loadImage, Canvas } from 'canvas';
+import path from 'path';
 
 class Args {
+	image1Path: string;
+	image2Path: string;
+	outputPath: string;
+
 	constructor() {
 		if (process.argv.length < 5) {
 			console.log(
@@ -17,8 +21,12 @@ class Args {
 	}
 }
 
-async function loadAndResizeImage(path, targetWidth, targetHeight) {
-	const img = await loadImage(path);
+async function loadAndResizeImage(
+	filePath: string,
+	targetWidth: number,
+	targetHeight: number
+): Promise<Canvas> {
+	const img = await loadImage(filePath);
 
 	const aspectRatio = img.width / img.height;
 
@@ -39,7 +47,7 @@ async function loadAndResizeImage(path, targetWidth, targetHeight) {
 	return canvas;
 }
 
-function combineImages(img1, img2) {
+function combineImages(img1: Canvas, img2: Canvas): Canvas {
 	const canvas = createCanvas(img1.width, img1.height);
 	const ctx = canvas.getContext('2d');
 
@@ -66,8 +74,8 @@ function combineImages(img1, img2) {
 	return canvas;
 }
 
-function saveImage(path, canvas) {
-	const out = fs.createWriteStream(path);
+function saveImage(filePath: string, canvas: Canvas) {
+	const out = fs.createWriteStream(filePath);
 	const stream = canvas.createPNGStream();
 
 	stream.pipe(out);
@@ -103,5 +111,5 @@ async function run() {
 
 run();
 
-// node imageCombiner.js images/image1.png images/image2.png output.png
-// node imageCombiner.js images/image3.png images/image4.png output.png
+// ts-node imageCombiner.ts images/image1.png images/image2.png output.png
+// ts-node imageCombiner.ts images/image3.png images/image4.png output.png
