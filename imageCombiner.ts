@@ -17,7 +17,17 @@ class Args {
 
 		this.image1Path = process.argv[2];
 		this.image2Path = process.argv[3];
-		this.outputPath = process.argv[4];
+		this.outputPath = path.join('images', process.argv[4]);
+	}
+}
+
+async function loadImageWithPath(filePath: string) {
+	try {
+		return await loadImage(filePath);
+	} catch (error) {
+		throw new Error(
+			`Failed to load image from ${filePath}: ${(error as Error).message}`
+		);
 	}
 }
 
@@ -26,23 +36,12 @@ async function loadAndResizeImage(
 	targetWidth: number,
 	targetHeight: number
 ): Promise<Canvas> {
-	const img = await loadImage(filePath);
+	const img = await loadImageWithPath(filePath);
 
-	const aspectRatio = img.width / img.height;
-
-	let newWidth = targetWidth;
-	let newHeight = targetHeight;
-
-	if (aspectRatio > 1) {
-		newHeight = Math.round(targetWidth / aspectRatio);
-	} else {
-		newWidth = Math.round(targetHeight * aspectRatio);
-	}
-
-	const canvas = createCanvas(newWidth, newHeight);
+	const canvas = createCanvas(targetWidth, targetHeight);
 	const ctx = canvas.getContext('2d');
 
-	ctx.drawImage(img, 0, 0, newWidth, newHeight);
+	ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
 
 	return canvas;
 }
@@ -82,11 +81,9 @@ function saveImage(filePath: string, canvas: Canvas) {
 	out.on('finish', () => console.log('The PNG file was created.'));
 }
 
-async function run() {
-	const args = new Args();
-
-	const img1 = await loadAndResizeImage(args.image1Path, 400, 300);
-	const img2 = await loadAndResizeImage(args.image2Path, 400, 300);
+async function processImages(args: Args) {
+	const img1 = await loadImageWithPath(args.image1Path);
+	const img2 = await loadImageWithPath(args.image2Path);
 
 	const commonWidth = Math.min(img1.width, img2.width);
 	const commonHeight = Math.min(img1.height, img2.height);
@@ -104,9 +101,16 @@ async function run() {
 
 	const imgCombined = combineImages(img1Resized, img2Resized);
 
-	const outputPath = path.join('images', args.outputPath);
+	saveImage(args.outputPath, imgCombined);
+}
 
-	saveImage(outputPath, imgCombined);
+async function run() {
+	try {
+		const args = new Args();
+		await processImages(args);
+	} catch (error) {
+		console.error('Error:', (error as Error).message);
+	}
 }
 
 run();
